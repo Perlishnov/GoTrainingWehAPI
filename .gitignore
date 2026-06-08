@@ -1,0 +1,76 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+*.test
+*.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Dependency directories (if using vendoring)
+vendor/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Logs
+*.log
+logs/
+
+# Test coverage and profile
+*.cover
+*.cgo
+coverage.out
+coverage.html
+*.prof
+
+# Build and temporary files
+tmp/
+temp/
+*.tmp
+
+# Binary (your built app)
+/go-rest-api
+/GoTrainingProject
+
+# Mockery generated files (if committed)
+/mocks/
+# But if you want to keep mocks, remove the line above
+
+# Swagger docs (optional, you might want to keep them)
+# /docs/
+
+# Database files (if using SQLite or local DB)
+*.db
+*.sqlite
+*.sqlite3
+
+# MongoDB data directory (if running local MongoDB)
+/data/db/
+/mongodb-data/
+
+# Wire generated file (optional, some keep it in version control)
+# wire_gen.go
