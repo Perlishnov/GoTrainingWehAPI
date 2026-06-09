@@ -25,13 +25,13 @@ func InitializeApp() (*App, error) {
         // ------------------------------------------------------------------
 
         // --- MySQL (default) ---
-        // provideDBConfig,                // converts config to DBConfig
-        // database.NewMySQLConnection,   // returns *sql.DB
-        // dao.NewUserDAO,                // MySQL implementation
+        provideDBConfig,                // converts config to DBConfig
+        database.NewMySQLConnection,   // returns *sql.DB
+        dao.NewUserDAO,                // MySQL implementation
 
         // --- MongoDB (bonus) ---
-        database.NewMongoConnection,   // returns *mongo.Database
-        dao.NewUserDAOMongo,           // MongoDB implementation
+        // database.NewMongoConnection,   // returns *mongo.Database
+        // dao.NewUserDAOMongo,           // MongoDB implementation
 
         // ------------------------------------------------------------------
 

@@ -13,10 +13,10 @@ import (
 
 type UserService interface {
     CreateUser(ctx context.Context, req *models.CreateUserRequest) (*models.User, error)
-    GetUserByID(ctx context.Context, id int64) (*models.User, error)
-    GetCurrentUser(ctx context.Context, userID int64) (*models.User, error)
+    GetUserByID(ctx context.Context, id string) (*models.User, error)
+    GetCurrentUser(ctx context.Context, userID string) (*models.User, error)
     GetAllUsers(ctx context.Context, page, pageSize int) ([]models.User, error)
-    ValidateUserAccess(userID, targetID int64, role string) bool
+    ValidateUserAccess(userID, targetID string, role string) bool
 }
 
 type userService struct{
@@ -32,40 +32,50 @@ func NewUserService(userDAO dao.UserDAO, logger *logrus.Logger) UserService {
 }
 
 func (s *userService) CreateUser(ctx context.Context, req *models.CreateUserRequest) (*models.User, error) {
-	existingUser, _ := s.userDAO.GetByEmail(ctx, req.Email)
-
-	if existingUser != nil {
-		s.logger.WithField("email", req.Email).Warn("user already exists")
-		return nil, errors.New("user with this email already exists")
-	}
-	hashed, err := utils.HashPassword(req.Password)
-	if err != nil {
-		s.logger.WithError(err).Error("password hashing failed")
-		return nil, fmt.Errorf("failed to hash password")
-	}
-	role := req.Role
-	if role == ""{
-		role = "user"
-	}
-
-	user := &models.User{
-		Name: req.Name,
-		Email: req.Email,
-		Password: hashed,
-		Role: role,
-	}
-
-	if err := s.userDAO.Create(ctx, user); err != nil {
-        s.logger.WithError(err).Error("failed to create user in DB")
-        return nil, fmt.Errorf("failed to create user: %w", err)
+    // 1. Check existing user
+    existingUser, err := s.userDAO.GetByEmail(ctx, req.Email)
+    if err != nil {
+        return nil, fmt.Errorf("check existing user: %w", err)
     }
-    user.Password = ""
-    s.logger.WithField("user_id", user.ID).Info("user created")
+    if existingUser != nil {
+        return nil, fmt.Errorf("user with email %s already exists", req.Email)
+    }
 
-	return user, nil
+    // 2. Validate role
+    if req.Role != "" && req.Role != "user" && req.Role != "admin" {
+        return nil, fmt.Errorf("invalid role: must be 'user' or 'admin', got %q", req.Role)
+    }
+    role := req.Role
+    if role == "" {
+        role = "user"
+    }
+
+    // 3. Hash password
+    hashed, err := utils.HashPassword(req.Password)
+    if err != nil {
+        // Wrap the error – the controller will decide whether to log it.
+        return nil, fmt.Errorf("hash password: %w", err)
+    }
+
+    // 4. Create user object
+    user := &models.User{
+        Name:     req.Name,
+        Email:    req.Email,
+        Password: hashed,
+        Role:     role,
+    }
+
+    // 5. Persist
+    if err := s.userDAO.Create(ctx, user); err != nil {
+        return nil, fmt.Errorf("create user in DB: %w", err)
+    }
+
+    // 6. Return without password
+    user.Password = ""
+    return user, nil
 }
 
-func (s *userService) GetUserByID(ctx context.Context, id int64) (*models.User, error) {
+func (s *userService) GetUserByID(ctx context.Context, id string) (*models.User, error) {
     user, err := s.userDAO.GetByID(ctx, id)
     if err != nil {
         s.logger.WithError(err).WithField("user_id", id).Error("failed to get user")
@@ -78,7 +88,7 @@ func (s *userService) GetUserByID(ctx context.Context, id int64) (*models.User, 
     return user, nil
 }
 
-func (s *userService) GetCurrentUser(ctx context.Context, userID int64) (*models.User, error) {
+func (s *userService) GetCurrentUser(ctx context.Context, userID string) (*models.User, error) {
     return s.GetUserByID(ctx, userID)
 }
 
@@ -107,6 +117,6 @@ func (s *userService) GetAllUsers(ctx context.Context, page, pageSize int) ([]mo
 	return users, nil
 }
 
-func (s *userService) ValidateUserAccess(userID, targetID int64, role string) bool {
+func (s *userService) ValidateUserAccess(userID, targetID string, role string) bool {
     return role == "admin" || userID == targetID
 }

@@ -30,7 +30,6 @@ func NewAuthController(authService service.AuthService, logger *logrus.Logger) *
 // @Failure      400 {object} map[string]string "invalid request"
 // @Failure      401 {object} map[string]string "invalid credentials"
 // @Router       /auth/login [post]
-
 func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
     var req models.LoginRequest
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

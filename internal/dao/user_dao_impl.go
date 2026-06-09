@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Perlishnov/gotrainingproject/internal/models"
+	"github.com/google/uuid"
 )
 
 
@@ -19,23 +20,28 @@ func NewUserDAO( db *sql.DB) UserDAO  {
 }
 
 func (d *UserDAOImpl) Create(ctx context.Context,user *models.User ) error {
-	query := `INSERT INTO users (name, email, password, role, created_at, updated_at)
-	VALUES (?,?,?,?,?,?)
-	`
+	query := `INSERT INTO users (id, name, email, password, role, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`
+	// Moved ID generation from database level to backend level because
+	// 1. We have to different types of database one nosql and one sql. Therefore, they have different ways to manage ids so we transfer the risk of collission to the backend
+	// 2. As well under load we must meet an algorithm that allow us to generate IDs without collissions. 
+	
 	now := time.Now()
+	user.ID = uuid.New().String()
 	user.CreatedAt = now
 	user.UpdatedAt = now
 
-	res, err := d.db.ExecContext(ctx, query, user.Name, user.Email, user.Password, user.Role, now, now)
+	_, err := d.db.ExecContext(ctx, query,
+        user.ID, user.Name, user.Email, user.Password, user.Role, now, now)
+		
 	if err != nil {
 		return fmt.Errorf("Failed to create user: %w", err)
 	}
-	id, _ := res.LastInsertId()
-	user.ID = id
+
 	return nil
 }
 
-func (d *UserDAOImpl) GetByID(ctx context.Context, id int64) (*models.User, error)  {
+func (d *UserDAOImpl) GetByID(ctx context.Context, id string) (*models.User, error)  {
 	query := `SELECT id, name, email, password, role, created_at, updated_at FROM users WHERE id =?`
 
 	var u models.User
@@ -89,7 +95,7 @@ func (d *UserDAOImpl) Update(ctx context.Context, user *models.User) error {
 	return err
 }
 
-func (d *UserDAOImpl) Delete(ctx context.Context, id int64) error {
+func (d *UserDAOImpl) Delete(ctx context.Context, id string) error {
 	_, err := d.db.ExecContext(ctx, `DELETE FROM users WHERE id=?`,id)
 	return err
 }

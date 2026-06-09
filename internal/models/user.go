@@ -4,10 +4,10 @@ import "time"
 
 // User represents a user in the system.
 type User struct {
-    ID        int64     `json:"id" bson:"_id,omitempty" example:"1"`
+    ID        string    `json:"id" bson:"_id,omitempty" example:"550e8400-e29b-41d4-a716-446655440000"`
     Name      string    `json:"name" bson:"name" example:"John Doe"`
     Email     string    `json:"email" bson:"email" example:"john@example.com"`
-    Password  string    `json:"-" bson:"password"` 
+    Password  string    `json:"-" bson:"password"`
     Role      string    `json:"role" bson:"role" example:"user"`
     CreatedAt time.Time `json:"created_at" bson:"created_at" example:"2025-01-01T12:00:00Z"`
     UpdatedAt time.Time `json:"updated_at" bson:"updated_at" example:"2025-01-01T12:00:00Z"`

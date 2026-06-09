@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"github.com/Perlishnov/gotrainingproject/internal/models"
+	"github.com/Perlishnov/gotrainingproject/internal/utils"
 )
 
 // UserDAOMongo implements the UserDAO interface using MongoDB.
@@ -20,7 +23,7 @@ type UserDAOMongo struct {
 
 // NewUserDAOMongo creates a new MongoDB DAO instance.
 // It ensures a unique index on the email field.
-func NewUserDAOMongo(db *mongo.Database) UserDAO {
+func NewUserDAOMongo(db *mongo.Database, logger *logrus.Logger) UserDAO {
 	collection := db.Collection("users")
 
 	// Create a unique index on the email field to prevent duplicates.
@@ -29,20 +32,23 @@ func NewUserDAOMongo(db *mongo.Database) UserDAO {
 		Options: options.Index().SetUnique(true),
 	})
 	if err != nil {
-		// In production you would log this error, but for now we ignore it
-		// because the index might already exist.
-		_ = err
+
+		if !(utils.IsIndexAlreadyExistsError(err)) {
+            logger.WithError(err).Fatal("failed to create unique index on users.email")
+        }
 	}
 
 	return &UserDAOMongo{collection: collection}
 }
+
+
 
 // Create inserts a new user document into MongoDB.
 // It generates a unique int64 ID for the user using a nanosecond timestamp.
 func (d *UserDAOMongo) Create(ctx context.Context, user *models.User) error {
 	// Generate a new ID using current timestamp (nanoseconds) for uniqueness.
 	// This avoids needing a separate sequence or ObjectID conversion.
-	user.ID = time.Now().UnixNano()
+	user.ID = uuid.New().String()
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
@@ -57,8 +63,8 @@ func (d *UserDAOMongo) Create(ctx context.Context, user *models.User) error {
 }
 
 // GetByID retrieves a user by its numeric ID.
-func (d *UserDAOMongo) GetByID(ctx context.Context, id int64) (*models.User, error) {
-	filter := bson.M{"id": id}
+func (d *UserDAOMongo) GetByID(ctx context.Context, id string) (*models.User, error) {
+	filter := bson.M{"_id": id}
 	var user models.User
 	err := d.collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
@@ -110,27 +116,27 @@ func (d *UserDAOMongo) GetAll(ctx context.Context, limit, offset int) ([]models.
 // Update replaces an existing user document.
 func (d *UserDAOMongo) Update(ctx context.Context, user *models.User) error {
 	user.UpdatedAt = time.Now()
-	filter := bson.M{"id": user.ID}
+	filter := bson.M{"_id": user.ID}
 	update := bson.M{"$set": user}
 	result, err := d.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 	if result.MatchedCount == 0 {
-		return fmt.Errorf("user with id %d not found", user.ID)
+		return fmt.Errorf("user with id %s not found", user.ID)
 	}
 	return nil
 }
 
 // Delete removes a user document from MongoDB.
-func (d *UserDAOMongo) Delete(ctx context.Context, id int64) error {
-	filter := bson.M{"id": id}
+func (d *UserDAOMongo) Delete(ctx context.Context, id string) error {
+	filter := bson.M{"_id": id}
 	result, err := d.collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	if result.DeletedCount == 0 {
-		return fmt.Errorf("user with id %d not found", id)
+		return fmt.Errorf("user with id %s not found", id)
 	}
 	return nil
 }

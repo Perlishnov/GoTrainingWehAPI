@@ -24,12 +24,13 @@ func InitializeApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	dbConfig := provideDBConfig(configConfig)
 	logger := provideLogger(configConfig)
-	mongoDatabase, err := database.NewMongoConnection(logger)
+	db, err := database.NewMySQLConnection(dbConfig, logger)
 	if err != nil {
 		return nil, err
 	}
-	userDAO := dao.NewUserDAOMongo(mongoDatabase)
+	userDAO := dao.NewUserDAO(db)
 	userService := service.NewUserService(userDAO, logger)
 	userController := controller.NewUserController(userService, logger)
 	jwtUtil := utils.NewJWTUtil(configConfig)

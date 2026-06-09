@@ -21,13 +21,13 @@ func NewJWTUtil(cfg *config.Config) *JWTUtil  {
 }
 
 type Claims struct{
-	UserID int64 `json:"user_id"`
+	UserID string `json:"user_id"`
 	Email string `json:"email"`
 	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func (j *JWTUtil) GenerateToken(userID int64, email, role string) (string, error) {
+func (j *JWTUtil) GenerateToken(userID string, email, role string) (string, error) {
 	claims := &Claims{
 		UserID: userID,
 		Email: email,
