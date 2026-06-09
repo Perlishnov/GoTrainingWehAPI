@@ -82,7 +82,7 @@ func (d *UserDAOImpl) GetAll(ctx context.Context, limit, offset int) ([]models.U
 }
 
 func (d *UserDAOImpl) Update(ctx context.Context, user *models.User) error {
-	query := `UPDATE users SET name=?, email=?, role=?, updated_at=?, WHERE id=?`
+	query := `UPDATE users SET name=?, email=?, role=?, updated_at=? WHERE id=?`
 	user.UpdatedAt = time.Now()
 	_, err := d.db.ExecContext(ctx,query,user.Name, user.Email, user.Role, user.UpdatedAt, user.ID)
 
