@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Perlishnov/gotrainingproject/internal/models"
 	"github.com/Perlishnov/gotrainingproject/internal/service"
@@ -40,6 +41,10 @@ func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
     }
     user, err := c.userService.CreateUser(r.Context(), &req)
     if err != nil {
+        if strings.Contains(err.Error(), "already exists") {
+            http.Error(w, err.Error(), http.StatusConflict) 
+            return
+        }
         http.Error(w, err.Error(), http.StatusBadRequest)
         return
     }
