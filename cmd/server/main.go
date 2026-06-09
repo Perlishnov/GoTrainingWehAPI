@@ -1,24 +1,24 @@
 package main
 
 import (
-    "context"
-    "net/http"
-    "os"
-    "os/signal"
-    "syscall"
-    "time"
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-    "github.com/go-chi/chi/v5"
-    chiMiddleware "github.com/go-chi/chi/v5/middleware"
-    httpSwagger "github.com/swaggo/http-swagger"
-    "github.com/Perlishnov/gotrainingproject/wire"
+	"github.com/Perlishnov/gotrainingproject/wire"
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+    ginSwagger "github.com/swaggo/gin-swagger"
+    _ "github.com/Perlishnov/gotrainingproject/docs" // swagger docs
 )
 
 // @title           Go REST API
 // @version         1.0
 // @description     Production-ready REST API with JWT auth, role-based access, and MySQL.
 // @termsOfService  http://swagger.io/terms/
-
 
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
@@ -30,7 +30,6 @@ import (
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and the JWT token.
-
 func main() {
     app, err := wire.InitializeApp()
     if err != nil {
@@ -38,36 +37,33 @@ func main() {
     }
     logger := app.Logger
 
-    r := chi.NewRouter()
-    r.Use(chiMiddleware.RequestID)
-    r.Use(chiMiddleware.RealIP)
-    r.Use(chiMiddleware.Recoverer)
-    r.Use(chiMiddleware.Logger)
+    // Set Gin mode (release or debug)
+    gin.SetMode(gin.ReleaseMode)
 
-    // Swagger UI endpoint
-    r.Get("/swagger/*", httpSwagger.Handler(
-        httpSwagger.URL("/docs/swagger.json"), // point to where the JSON is served
-    ))
+    router := gin.New()
+    router.Use(gin.Recovery())
+    router.Use(gin.Logger())
 
-    r.Handle("/docs/*", http.StripPrefix("/docs/", http.FileServer(http.Dir("./docs"))))
-
+    // Swagger endpoint
+    router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
     // Public routes
-    r.Post("/auth/login", app.AuthController.Login)
-    r.Post("/auth/logout", app.AuthController.Logout)
-    r.Post("/users", app.UserController.CreateUser)
+    router.POST("/auth/login", app.AuthController.Login)
+    router.POST("/auth/logout", app.AuthController.Logout)
+    router.POST("/users", app.UserController.CreateUser)
 
-    // Protected routes
-    r.Group(func(r chi.Router) {
-        r.Use(app.AuthMiddleware.Authenticate)
-        r.Get("/users/me", app.UserController.GetCurrentUser)
-        r.Get("/users/{id}", app.UserController.GetUserByID)
-        r.Get("/users", app.UserController.GetAllUsers)
-    })
+    // Protected routes group
+    authGroup := router.Group("/")
+    authGroup.Use(app.AuthMiddleware.Authenticate())
+    {
+        authGroup.GET("/users/me", app.UserController.GetCurrentUser)
+        authGroup.GET("/users/:id", app.UserController.GetUserByID)
+        authGroup.GET("/users", app.UserController.GetAllUsers)
+    }
 
     srv := &http.Server{
         Addr:    ":" + os.Getenv("SERVER_PORT"),
-        Handler: r,
+        Handler: router,
     }
 
     go func() {

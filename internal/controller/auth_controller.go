@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/Perlishnov/gotrainingproject/internal/models"
 	"github.com/Perlishnov/gotrainingproject/internal/service"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,20 +30,19 @@ func NewAuthController(authService service.AuthService, logger *logrus.Logger) *
 // @Failure      400 {object} map[string]string "invalid request"
 // @Failure      401 {object} map[string]string "invalid credentials"
 // @Router       /auth/login [post]
-func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
+func (c *AuthController) Login(ctx *gin.Context) {
     var req models.LoginRequest
-    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+    if err := ctx.ShouldBindJSON(&req); err != nil {
         c.logger.WithError(err).Warn("invalid login request")
-        http.Error(w, "invalid request body", http.StatusBadRequest)
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
         return
     }
-    token, err := c.authService.Login(r.Context(), req.Email, req.Password)
+    token, err := c.authService.Login(ctx.Request.Context(), req.Email, req.Password)
     if err != nil {
-        http.Error(w, err.Error(), http.StatusUnauthorized)
+        ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
         return
     }
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{"token": token})
+    ctx.JSON(http.StatusOK, gin.H{"token": token})
 }
 
 // Logout godoc
@@ -55,12 +54,11 @@ func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 // @Success      200 {object} map[string]string "message"
 // @Failure      500 {object} map[string]string "internal error"
 // @Router       /auth/logout [post]
-func (c *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
-    token := r.Header.Get("Authorization")
+func (c *AuthController) Logout(ctx *gin.Context) {
+    token := ctx.GetHeader("Authorization")
     if err := c.authService.Logout(token); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
-    w.WriteHeader(http.StatusOK)
-    json.NewEncoder(w).Encode(map[string]string{"message": "logged out"})
+    ctx.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
