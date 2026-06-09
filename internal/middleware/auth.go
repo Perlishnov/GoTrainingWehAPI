@@ -24,6 +24,7 @@ func (m *AuthMiddleware) Authenticate(next http.Handler) http.Handler  {
 		if authHeader == "" {
 			m.logger.Warn("missing auth header")
 			http.Error(w, "authorization header required", http.StatusUnauthorized)
+            return
 		}
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
