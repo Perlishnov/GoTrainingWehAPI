@@ -11,7 +11,11 @@ type Person struct{
 	Age int `json:"age"`
 }
 
-func fromJSON(input string) (*Person, error)  {
+func IsAdult(p Person) bool {
+    return p.Age >= 18
+}
+
+func FromJSON(input string) (*Person, error)  {
 	var person Person
 	decoder := json.NewDecoder(strings.NewReader(input))
 	decoder.DisallowUnknownFields()
