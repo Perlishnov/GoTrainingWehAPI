@@ -27,9 +27,13 @@ help:
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
 
 ## run: Run the application
-run:
-	$(GOCMD) run cmd/server/main.go
 
+run-task-1:
+	$(GOCMD) run cmd/person/main.go
+
+run-task-2:
+	$(GOCMD) run cmd/server/main.go
+	
 ## build: Build the binary
 build:
 	$(GOBUILD) -o $(BINARY_PATH) cmd/server/main.go
